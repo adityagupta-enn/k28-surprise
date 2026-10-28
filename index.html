@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#eadcff">
+<title>A question for you</title>
+<style>
+  /* ===== COLORS: change these to restyle the whole page ===== */
+  :root {
+    --bg-1: #eadcff;        /* lilac */
+    --bg-2: #ffd6e8;        /* rose */
+    --bg-3: #ffe6d5;        /* peach */
+    --ink: #3b1f4f;         /* deep plum text */
+    --card: rgba(255, 255, 255, .72);
+    --accent-1: #8e5cf0;    /* purple */
+    --accent-2: #e0559c;    /* pink */
+    --soft: #efe6fb;        /* No button, reply chips */
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+             env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    background:
+      radial-gradient(circle at 15% 20%, rgba(142, 92, 240, .25), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(224, 85, 156, .22), transparent 45%),
+      linear-gradient(160deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
+    color: var(--ink);
+    font-family: system-ui, Roboto, "Segoe UI", Arial, sans-serif;
+    touch-action: manipulation;
+    user-select: none; -webkit-user-select: none;
+  }
+  .card {
+    background: rgba(255, 255, 255, .85);
+    background: var(--card);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    width: min(440px, 90%);
+    max-height: 92vh; max-height: 92dvh; overflow-y: auto;
+    padding: 28px 22px; border-radius: 30px; text-align: center;
+    border: 1px solid rgba(255, 255, 255, .8);
+    box-shadow: 0 20px 50px rgba(142, 92, 240, .22);
+    position: relative; z-index: 2;
+  }
+  img {
+    width: min(170px, 40vw); height: min(170px, 40vw); object-fit: cover;
+    border-radius: 50%; border: 6px solid #fff; margin-bottom: 16px;
+    box-shadow: 0 8px 22px rgba(142, 92, 240, .28);
+  }
+  h1 { font-size: clamp(1.5rem, 6vw, 2rem); margin: 0 0 10px; line-height: 1.2; }
+  p { line-height: 1.5; margin: 0 0 22px; }
+  .buttons {
+    display: flex; gap: 14px; justify-content: center;
+    align-items: center; min-height: 90px;
+  }
+  button {
+    font: inherit; font-weight: bold; border: 0; cursor: pointer;
+    padding: 14px 30px; border-radius: 999px; min-height: 48px;
+    transition: transform .15s;
+  }
+  #yes, .primary {
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(224, 85, 156, .4);
+  }
+  #no { background: var(--soft); color: var(--ink); z-index: 5; }
+  #yayMessage { white-space: pre-line; }
+  .hidden { display: none; }
+
+  /* reasons cards */
+  .reason {
+    background: rgba(255, 255, 255, .8); border: 1px dashed #c9b3f5;
+    border-radius: 18px; padding: 16px 14px; margin-bottom: 10px;
+    cursor: pointer; color: var(--accent-1); font-weight: bold;
+  }
+  .reason.open { color: var(--ink); font-weight: normal; border-style: solid; background: #fff; }
+
+  /* chat-style date page */
+  #date h1 { font-size: clamp(1.3rem, 5vw, 1.6rem); }
+  .chat-head { font-size: .85rem; opacity: .7; margin: -4px 0 14px; }
+  #chat { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; text-align: left; }
+  .bubble {
+    max-width: 86%; padding: 10px 14px; border-radius: 18px;
+    line-height: 1.4; white-space: pre-line;
+    animation: pop .25s ease;
+  }
+  .him { align-self: flex-start; background: #fff; border-bottom-left-radius: 6px; box-shadow: 0 2px 8px rgba(142, 92, 240, .12); }
+  .her { align-self: flex-end; color: #fff; border-bottom-right-radius: 6px;
+         background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); }
+  .typing { display: flex; gap: 5px; padding: 14px 16px; }
+  .typing span { width: 7px; height: 7px; border-radius: 50%; background: #b9a3e8; animation: blink 1s infinite; }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+  @keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  #replies { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .reply {
+    background: var(--soft); color: var(--ink); border: 2px solid #d9c2ff;
+    padding: 10px 16px; min-height: 44px;
+  }
+  .reply.main { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color: #fff; border-color: transparent; }
+  .row { display: flex; gap: 8px; width: 100%; }
+  .textin {
+    flex: 1; min-width: 0; padding: 12px 14px; font: inherit; color: var(--ink);
+    border: 1px solid #d9c2ff; border-radius: 999px; background: #fff;
+    user-select: text; -webkit-user-select: text;
+  }
+  #waLink { color: var(--accent-1); font-weight: bold; }
+
+  #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+  @media (prefers-reduced-motion: reduce) { button { transition: none; } .bubble, .typing span { animation: none; } }
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+
+<div class="card" id="card">
+
+  <!-- Page 1: the question -->
+  <div id="ask" class="screen">
+    <img id="photo" alt="">
+    <h1 id="title"></h1>
+    <p id="message"></p>
+    <div class="buttons">
+      <button id="yes">Yes 💖</button>
+      <button id="no">No</button>
+    </div>
+  </div>
+
+  <!-- Page 2: after Yes -->
+  <div id="yay" class="screen hidden">
+    <img id="yayPhoto" alt="">
+    <h1 id="yayTitle"></h1>
+    <p id="yayMessage"></p>
+    <button class="primary" id="toReasons">Next 💌</button>
+  </div>
+
+  <!-- Page 3: reasons -->
+  <div id="reasons" class="screen hidden">
+    <h1 id="reasonsTitle"></h1>
+    <p id="reasonsIntro"></p>
+    <div id="reasonList"></div>
+    <button class="primary" id="toDate">Next 🌸</button>
+  </div>
+
+  <!-- Page 4: first date (chat style) -->
+  <div id="date" class="screen hidden">
+    <h1 id="dateTitle"></h1>
+    <div class="chat-head" id="chatHead"></div>
+    <div id="chat"></div>
+    <div id="replies"></div>
+  </div>
+
+  <!-- Page 5: done -->
+  <div id="sent" class="screen hidden">
+    <h1 id="sentTitle"></h1>
+    <p id="sentMessage"></p>
+    <p><a id="waLink" href="#" target="_blank" rel="noopener">WhatsApp didn't open? Tap here</a></p>
+  </div>
+
+</div>
+
+<script>
+/* ===== EDIT ONLY THIS PART ===== */
+const CONFIG = {
+  herName: "Komal💖...",
+  yourName: "Aditya",
+  question: "I want you to be forever mine💕. Will you be my girlfriend?",
+  message: "You make me incredibly happy🥰. I want to be exclusive with you and I want to make you my girlfriend and see where this journey takes us.",
+  photo: "photo.jpg",        // first photo (leave "" for no photo)
+  yayPhoto: "photo2.jpg",    // photo after she clicks Yes (leave "" for no photo)
+  yayTitle: "So... its really us now. ❤️",
+  yayMessage: "Out of all the possibilities I had in my head, this was always the one I secretly hoped for. And now its real. ❤️\n\nI will love you more than yesterday, and somehow less than tomorrow. ❤️♾️",
+
+  /* Page 3: reasons (add or remove lines freely) */
+  reasonsTitle: "Why I like you 💜",
+  reasonsIntro: "Tap each card to open it.",
+  reasons: [
+    "That smile of yours... somehow it stays in my mind longer than it should. 🥹",
+    "I can talk to you about the most random things and still enjoy every second of it.",
+    "The more I get to know you, the more I realize there's always something new to adore about you. 🥰",
+    "There's a comfort in your presence that makes me want to stay around you just a little longer. ❤️",
+    "Seeing you happy genuinely makes me happy too, probably more than you'll ever know. 💗",
+    "Among all the things I love about you, my favourite will always be simply you. ❤️"
+  ],
+
+  /* Page 4: first date (looks like a chat with you) */
+  dateTitle: "Our first date 🌸",
+  whatsappNumber: "917383883527",   // your number with country code, digits only
+  dateOptions: [
+    "☕ Coffee and a long chat",
+    "🎬 Movie night",
+    "🍜 Street food walk"
+  ],
+  timeOptions: ["☀️ Morning", "🌤️ Afternoon", "🌆 Evening", "🌙 Night"],
+  chat: {
+    intro:   "Okay, so now that we're us... I have to take you out properly 😄",
+    whereQ:  "Where should I take you?",
+    other:   "✍️ Something else",
+    otherQ:  "Ooh, tell me! What do you have in mind? 👀",
+    otherPh: "Type your idea...",
+    dayQ:    "Love that 😍 Which day works for you?",
+    anotherDay: "📅 Another day",
+    dayOtherQ:  "No problem! Which day?",
+    dayOtherPh: "e.g. next Sunday",
+    timeQ:   "And what time feels right?",
+    noteQ:   "Last one... anything you want me to know? A little wish, a want, anything? 💕",
+    notePh:  "Type here...",
+    skip:    "Nothing, surprise me 😄",
+    send:    "Send",
+    outro:   "Perfect. I'm already excited 🥹 Here's our plan:",
+    sendBtn: "Send this plan to yours, Aditya 💬"
+  },
+
+  /* Page 5 */
+  sentTitle: "Can't wait! 💜",
+  sentMessage: "I got your plan. It's going to be a really good day."
+};
+/* =============================== */
+
+const $ = id => document.getElementById(id);
+
+/* ---- Fill in the text ---- */
+$("title").textContent = CONFIG.herName + ", " + CONFIG.question;
+$("message").textContent = CONFIG.message;
+$("yayTitle").textContent = CONFIG.yayTitle;
+$("yayMessage").textContent = CONFIG.yayMessage + " - " + CONFIG.yourName;
+$("reasonsTitle").textContent = CONFIG.reasonsTitle;
+$("reasonsIntro").textContent = CONFIG.reasonsIntro;
+$("dateTitle").textContent = CONFIG.dateTitle;
+$("chatHead").textContent = "Chat with " + CONFIG.yourName + " 💬";
+$("sentTitle").textContent = CONFIG.sentTitle;
+$("sentMessage").textContent = CONFIG.sentMessage;
+
+if (CONFIG.photo) { $("photo").src = CONFIG.photo; }
+else { $("photo").style.display = "none"; }
+
+if (CONFIG.yayPhoto) { $("yayPhoto").src = CONFIG.yayPhoto; }
+else { $("yayPhoto").style.display = "none"; }
+
+/* ---- Switch between pages ---- */
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+  $(id).classList.remove("hidden");
+  $("card").scrollTop = 0;
+}
+
+/* ---- Page 1: the No button always runs away ---- */
+const yes = $("yes"), no = $("no");
+let yesScale = 1;
+no.tabIndex = -1;
+
+function dodge(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  // Move No out of the glass card so "fixed" works on the whole screen
+  if (no.parentElement !== document.body) document.body.appendChild(no);
+  const pad = 16;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const maxX = Math.max(pad, vw - no.offsetWidth - pad);
+  const maxY = Math.max(pad, vh - no.offsetHeight - pad);
+  no.style.position = "fixed";
+  no.style.left = (pad + Math.random() * (maxX - pad)) + "px";
+  no.style.top = (pad + Math.random() * (maxY - pad)) + "px";
+  yesScale = Math.min(yesScale + 0.08, 1.8);   // Yes grows, max 1.8x
+  yes.style.transform = "scale(" + yesScale + ")";
+}
+["pointerdown", "mouseenter", "click", "focus"]
+  .forEach(ev => no.addEventListener(ev, dodge, { passive: false }));
+
+yes.addEventListener("click", () => {
+  no.style.display = "none";
+  show("yay");
+  burst();
+});
+
+/* ---- Page 2 -> 3 -> 4 ---- */
+$("toReasons").addEventListener("click", () => show("reasons"));
+
+let chatStarted = false;
+$("toDate").addEventListener("click", () => {
+  show("date");
+  if (!chatStarted) { chatStarted = true; startChat(); }
+});
+
+/* ---- Page 3: tap-to-open reason cards ---- */
+CONFIG.reasons.forEach(text => {
+  const card = document.createElement("div");
+  card.className = "reason";
+  card.textContent = "Tap to open 💌";
+  card.addEventListener("click", () => {
+    card.textContent = text;
+    card.classList.add("open");
+  });
+  $("reasonList").appendChild(card);
+});
+
+/* ---- Page 4: chat-style date planning ---- */
+const chatBox = $("chat"), replies = $("replies");
+const scrollDown = () => { $("card").scrollTop = $("card").scrollHeight; };
+
+function bubble(text, who) {
+  const d = document.createElement("div");
+  d.className = "bubble " + who;
+  d.textContent = text;
+  chatBox.appendChild(d);
+  scrollDown();
+}
+
+function say(text) {                       // his message, with typing dots first
+  return new Promise(resolve => {
+    const t = document.createElement("div");
+    t.className = "bubble him typing";
+    t.innerHTML = "<span></span><span></span><span></span>";
+    chatBox.appendChild(t);
+    scrollDown();
+    setTimeout(() => { t.remove(); bubble(text, "him"); resolve(); }, 900);
+  });
+}
+
+function choose(options) {                 // her tap-to-reply buttons
+  return new Promise(resolve => {
+    replies.innerHTML = "";
+    options.forEach(opt => {
+      const b = document.createElement("button");
+      b.className = "reply";
+      b.textContent = opt;
+      b.addEventListener("click", () => {
+        replies.innerHTML = "";
+        bubble(opt, "her");
+        resolve(opt);
+      });
+      replies.appendChild(b);
+    });
+    scrollDown();
+  });
+}
+
+function typeIn(placeholder, skipText) {   // her typed reply (skip is optional)
+  return new Promise(resolve => {
+    replies.innerHTML = "";
+    const row = document.createElement("div");
+    row.className = "row";
+    const input = document.createElement("input");
+    input.type = "text"; input.maxLength = 200;
+    input.className = "textin"; input.placeholder = placeholder;
+    const send = document.createElement("button");
+    send.className = "reply main"; send.textContent = CONFIG.chat.send;
+    const done = value => { replies.innerHTML = ""; if (value) bubble(value, "her"); resolve(value); };
+    send.addEventListener("click", () => { const v = input.value.trim(); if (v) done(v); });
+    input.addEventListener("keydown", e => { if (e.key === "Enter") send.click(); });
+    row.appendChild(input); row.appendChild(send);
+    replies.appendChild(row);
+    if (skipText) {
+      const skip = document.createElement("button");
+      skip.className = "reply"; skip.textContent = skipText;
+      skip.addEventListener("click", () => { replies.innerHTML = ""; bubble(skipText, "her"); resolve(""); });
+      replies.appendChild(skip);
+    }
+    scrollDown();
+  });
+}
+
+function nextDays() {                      // tomorrow + the next 5 days
+  const out = [];
+  for (let i = 1; i <= 6; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const label = i === 1 ? "Tomorrow" : d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+    const full = d.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+    out.push({ label, full });
+  }
+  return out;
+}
+
+async function startChat() {
+  const C = CONFIG.chat;
+  await say(C.intro);
+
+  // 1. where
+  await say(C.whereQ);
+  let where = await choose(CONFIG.dateOptions.concat(C.other));
+  if (where === C.other) {
+    await say(C.otherQ);
+    where = await typeIn(C.otherPh);
+  }
+
+  // 2. which day
+  await say(C.dayQ);
+  const days = nextDays();
+  const dayPick = await choose(days.map(d => d.label).concat(C.anotherDay));
+  let day;
+  if (dayPick === C.anotherDay) {
+    await say(C.dayOtherQ);
+    day = await typeIn(C.dayOtherPh);
+  } else {
+    day = days.find(d => d.label === dayPick).full;
+  }
+
+  // 3. what time
+  await say(C.timeQ);
+  const time = await choose(CONFIG.timeOptions);
+
+  // 4. anything else
+  await say(C.noteQ);
+  const note = await typeIn(C.notePh, C.skip);
+
+  // 5. summary + send
+  await say(C.outro);
+  let summary = "📍 " + where + "\n🗓️ " + day + ", " + time;
+  if (note) summary += "\n💭 " + note;
+  bubble(summary, "him");
+
+  let text = "I'm in for our first date! 💜\nPlan: " + where + "\nDay: " + day + ", " + time;
+  if (note) text += "\nAlso: " + note;
+  const url = "https://wa.me/" + String(CONFIG.whatsappNumber).replace(/\D/g, "") + "?text=" + encodeURIComponent(text);
+  $("waLink").href = url;
+
+  replies.innerHTML = "";
+  const go = document.createElement("button");
+  go.className = "primary"; go.textContent = C.sendBtn;
+  go.addEventListener("click", () => {
+    window.open(url, "_blank");
+    show("sent");
+    burst();
+  });
+  replies.appendChild(go);
+  scrollDown();
+}
+
+/* ---- Confetti ---- */
+const cv = $("confetti"), ctx = cv.getContext("2d");
+const dpr = Math.min(window.devicePixelRatio || 1, 2);
+function resize() {
+  cv.width = innerWidth * dpr;
+  cv.height = innerHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener("resize", resize); resize();
+let bits = [];
+
+function burst() {
+  const colors = ["#8e5cf0", "#e0559c", "#ffb3d1", "#ffd9a8", "#d9c2ff", "#ffffff"];
+  for (let i = 0; i < 140; i++) {
+    bits.push({
+      x: innerWidth / 2, y: innerHeight / 2.2,
+      vx: (Math.random() - 0.5) * 14, vy: Math.random() * -13 - 3,
+      s: Math.random() * 8 + 4, c: colors[i % colors.length],
+      r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3
+    });
+  }
+  requestAnimationFrame(tick);
+}
+
+function tick() {
+  ctx.clearRect(0, 0, innerWidth, innerHeight);
+  bits.forEach(b => {
+    b.vy += 0.35; b.x += b.vx; b.y += b.vy; b.r += b.vr;
+    ctx.save();
+    ctx.translate(b.x, b.y); ctx.rotate(b.r);
+    ctx.fillStyle = b.c;
+    ctx.fillRect(-b.s / 2, -b.s / 2, b.s, b.s * 0.6);
+    ctx.restore();
+  });
+  bits = bits.filter(b => b.y < innerHeight + 20);
+  if (bits.length) requestAnimationFrame(tick);
+}
+</script>
+</body>
+</html>
